@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"go-redis/internal/service"
+	"go-redis/internal/service/hashmap"
 	"go-redis/pkg/utils"
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 var DEFAULT_PORT = "7369"
@@ -41,7 +44,25 @@ func handleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
 
 	packet := utils.ReadFromConn(c)
+	commands := strings.Split(string(packet), " ")
+	primaryCommand := strings.TrimSpace(commands[0])
 
-	num, _ := c.Write(packet)
-	fmt.Printf("Wrote back %d bytes, the payload is %s\n", num, string(packet))
+	var response string
+	var ok bool
+
+	result, ok := service.GetDataStructureFromCommand(primaryCommand)
+	if !ok {
+		response = result
+	} else {
+		switch result {
+		case "HASHMAP":
+			response, ok = hashmap.Execute(commands)
+		}
+		if !ok {
+			response = "Error running command: " + response
+		}
+	}
+
+	num, _ := c.Write([]byte(response))
+	fmt.Printf("Wrote back %d bytes, the payload is %s\n", num, response)
 }

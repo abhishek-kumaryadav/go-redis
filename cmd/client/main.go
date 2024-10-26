@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 const (
@@ -20,7 +21,7 @@ func main() {
 		log.Fatal("Invalid number of arguments")
 		return
 	}
-	message := arguments[1]
+	message := strings.Join(arguments[1:], " ")
 	tcpServer, err := net.ResolveTCPAddr(TYPE, HOST+":"+PORT)
 	if err != nil {
 		fmt.Printf("ResolveTCPAddr failed: %s\n", err.Error())
@@ -44,5 +45,5 @@ func main() {
 
 	packet := utils.ReadFromTcpConn(conn)
 
-	fmt.Printf("Received message: %s\n", string(packet))
+	fmt.Printf("%s\n", string(packet))
 }

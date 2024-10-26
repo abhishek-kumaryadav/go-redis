@@ -11,7 +11,6 @@ func ReadFromTcpConn(conn *net.TCPConn) []byte {
 	// buffer to get data
 	var packet []byte
 	for {
-		fmt.Printf("Reading data...\n")
 		temp := make([]byte, 4096)
 		num, err := conn.Read(temp)
 		if err != nil {
@@ -30,7 +29,6 @@ func ReadFromConn(conn net.Conn) []byte {
 	// buffer to get data
 	var packet []byte
 	for {
-		fmt.Printf("Reading data...\n")
 		temp := make([]byte, 4096)
 		num, err := conn.Read(temp)
 		if err != nil {
