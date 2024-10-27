@@ -1,7 +1,7 @@
-package utils
+package tcp
 
 import (
-	"fmt"
+	"go-redis/pkg/utils/log"
 	"io"
 	"net"
 	"os"
@@ -17,7 +17,7 @@ func ReadFromTcpConn(conn *net.TCPConn) []byte {
 			if err == io.EOF {
 				break
 			}
-			fmt.Printf("Read data failed: %s\n", err.Error())
+			log.InfoLog.Printf("Read data failed: %s\n", err.Error())
 			os.Exit(1)
 		}
 		packet = append(packet, temp[:num]...)
@@ -35,7 +35,7 @@ func ReadFromConn(conn net.Conn) []byte {
 			if err == io.EOF {
 				break
 			}
-			fmt.Printf("Read data failed: %s\n", err.Error())
+			log.InfoLog.Printf("Read data failed: %s\n", err.Error())
 			os.Exit(1)
 		}
 		packet = append(packet, temp[:num]...)

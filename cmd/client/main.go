@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"go-redis/pkg/utils"
-	"log"
+	"go-redis/pkg/utils/log"
+	"go-redis/pkg/utils/tcp"
 	"net"
 	"os"
 	"strings"
@@ -16,21 +16,23 @@ const (
 )
 
 func main() {
+	log.InitLog("logs/client.log")
+
 	arguments := os.Args
 	if len(arguments) == 1 {
-		log.Fatal("Invalid number of arguments")
+		log.InfoLog.Fatal("Invalid number of arguments")
 		return
 	}
 	message := strings.Join(arguments[1:], " ")
 	tcpServer, err := net.ResolveTCPAddr(TYPE, HOST+":"+PORT)
 	if err != nil {
-		fmt.Printf("ResolveTCPAddr failed: %s\n", err.Error())
+		log.InfoLog.Printf("ResolveTCPAddr failed: %s\n", err.Error())
 		os.Exit(1)
 	}
 
 	conn, err := net.DialTCP(TYPE, nil, tcpServer)
 	if err != nil {
-		fmt.Printf("Dial failed: %s\n", err.Error())
+		log.InfoLog.Printf("Dial failed: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -39,11 +41,11 @@ func main() {
 	_, err = conn.Write([]byte(message))
 	conn.CloseWrite()
 	if err != nil {
-		fmt.Printf("Write data failed: %s\n", err.Error())
+		log.InfoLog.Printf("Write data failed: %s\n", err.Error())
 		os.Exit(1)
 	}
 
-	packet := utils.ReadFromTcpConn(conn)
+	packet := tcp.ReadFromTcpConn(conn)
 
 	fmt.Printf("%s\n", string(packet))
 }

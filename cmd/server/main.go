@@ -1,29 +1,30 @@
 package main
 
 import (
-	"fmt"
 	"go-redis/internal/service"
 	"go-redis/internal/service/hashmap"
-	"go-redis/pkg/utils"
-	"log"
+	"go-redis/pkg/utils/log"
+	"go-redis/pkg/utils/tcp"
 	"net"
 	"os"
 	"strings"
 )
 
-var DEFAULT_PORT = "7369"
+var DefaultPort = "7369"
 
 func main() {
+	log.InitLog("build/logs/server.log")
+
 	args := os.Args
 
-	port := DEFAULT_PORT
+	port := DefaultPort
 	if len(args) == 2 && args[1] != "" {
 		port = args[1]
 	}
 
 	listener, err := net.Listen("tcp4", "localhost:"+port)
 	if err != nil {
-		log.Fatal("Error: ", err)
+		log.InfoLog.Fatal("Error: ", err)
 		return
 	}
 	defer listener.Close()
@@ -31,7 +32,7 @@ func main() {
 	for {
 		connection, err := listener.Accept()
 		if err != nil {
-			log.Fatal("Error: ", err)
+			log.InfoLog.Fatal("Error: ", err)
 			return
 		}
 		go handleConnection(connection)
@@ -41,9 +42,9 @@ func main() {
 
 func handleConnection(c net.Conn) {
 	defer c.Close()
-	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
+	log.InfoLog.Printf("Serving %s\n", c.RemoteAddr().String())
 
-	packet := utils.ReadFromConn(c)
+	packet := tcp.ReadFromConn(c)
 	commands := strings.Split(string(packet), " ")
 	primaryCommand := strings.TrimSpace(commands[0])
 
@@ -64,5 +65,5 @@ func handleConnection(c net.Conn) {
 	}
 
 	num, _ := c.Write([]byte(response))
-	fmt.Printf("Wrote back %d bytes, the payload is %s\n", num, response)
+	log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", num, response)
 }
