@@ -1,7 +1,7 @@
 package main
 
 import (
-	"go-redis/internal/service"
+	"go-redis/internal/service/datastructure"
 	"go-redis/internal/service/hashmap"
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
@@ -10,19 +10,23 @@ import (
 	"strings"
 )
 
-var DefaultPort = "7369"
+const (
+	HOST = "localhost"
+	PORT = "7369"
+	TYPE = "tcp4"
+)
 
 func main() {
 	log.InitLog("build/logs/server.log")
 
 	args := os.Args
 
-	port := DefaultPort
+	port := PORT
 	if len(args) == 2 && args[1] != "" {
 		port = args[1]
 	}
 
-	listener, err := net.Listen("tcp4", "localhost:"+port)
+	listener, err := net.Listen(TYPE, HOST+":"+port)
 	if err != nil {
 		log.InfoLog.Fatal("Error: ", err)
 		return
@@ -51,12 +55,12 @@ func handleConnection(c net.Conn) {
 	var response string
 	var ok bool
 
-	result, ok := service.GetDataStructureFromCommand(primaryCommand)
+	result, ok := datastructure.GetDataStructureFromCommand(primaryCommand)
 	if !ok {
 		response = result
 	} else {
 		switch result {
-		case "HASHMAP":
+		case datastructure.HASHMAP:
 			response, ok = hashmap.Execute(commands)
 		}
 		if !ok {
