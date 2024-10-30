@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-redis/internal/repository"
 	"go-redis/internal/service/datastructure"
 	"go-redis/internal/service/hashmap"
 	"go-redis/pkg/utils/log"
@@ -18,6 +19,7 @@ const (
 
 func main() {
 	log.InitLog("build/logs/server.log")
+	repository.KeyValueStore = make(map[string]interface{})
 
 	args := os.Args
 
