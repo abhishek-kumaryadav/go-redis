@@ -3,6 +3,7 @@ package main
 import (
 	"go-redis/internal/repository"
 	"go-redis/internal/service/datastructure"
+	"go-redis/internal/service/expire"
 	"go-redis/internal/service/hashmap"
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
@@ -19,7 +20,7 @@ const (
 
 func main() {
 	log.InitLog("build/logs/server.log")
-	repository.KeyValueStore = make(map[string]interface{})
+	repository.InitRepositories()
 
 	args := os.Args
 
@@ -64,6 +65,9 @@ func handleConnection(c net.Conn) {
 		switch result {
 		case datastructure.HASHMAP:
 			response, ok = hashmap.Execute(commands)
+		case datastructure.EXPIRE:
+			response, ok = expire.Execute(commands)
+
 		}
 		if !ok {
 			response = "Error running command: " + response

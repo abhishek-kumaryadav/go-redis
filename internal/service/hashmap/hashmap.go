@@ -3,6 +3,10 @@ package hashmap
 import (
 	"fmt"
 	"go-redis/internal/repository"
+	"go-redis/internal/service"
+	"go-redis/internal/service/expire"
+	"go-redis/pkg/utils/converter"
+	"go-redis/pkg/utils/log"
 )
 
 const (
@@ -20,38 +24,41 @@ func Execute(commands []string) (string, bool) {
 		if len(commands) != 4 {
 			return "Incorrect number of arguments, please provide argument in form HSET hashmapName key value", false
 		}
-		hashMap, ok := repository.KeyValueStore[commands[1]]
-		if !ok {
-			temp := make(map[string]string)
-			hashMap = &temp
-			repository.KeyValueStore[commands[1]] = hashMap
-		}
-		hashmapData, ok := hashMap.(*map[string]string)
 
-		(*hashmapData)[commands[2]] = commands[3]
+		datastructureKey, key, value := commands[1], commands[2], commands[3]
+		hashmapData, err := service.CastToType[map[string]string](repository.KeyValueStore, datastructureKey, true)
+		if err != nil {
+			return err.Error(), false
+		}
+
+		(*hashmapData)[key] = value
 		return "Successfully set", true
 	case HGET:
-		hashMap, ok := repository.KeyValueStore[commands[1]]
-		if !ok {
-			return fmt.Sprintf("Value not present for key %s", commands[1]), false
+		if len(commands) != 2 && len(commands) != 3 {
+			return "Incorrect number of arguments, please provide argument in form HSET hashmapName key value", false
 		}
-		var hashmapData *map[string]string
-		hashmapData, ok = hashMap.(*map[string]string)
-		if !ok {
-			return "Key and data structure do not align", false
+		datastructureKey, key := commands[1], commands[2]
+
+		hashmapData, err := service.CastToType[map[string]string](repository.KeyValueStore, datastructureKey, false)
+		if err != nil {
+			return err.Error(), false
 		}
-		fmt.Print(*hashmapData)
-		switch len(commands) {
-		case 2:
-			return "all data in map", true
-		case 3:
-			value, ok := (*hashmapData)[commands[2]]
+		log.InfoLog.Printf("Extracted hash map data: ", *hashmapData)
+
+		expired, err := expire.CheckAndDeleteExpired(datastructureKey)
+		if expired {
+			return err.Error(), false
+		}
+
+		switch key {
+		case "*":
+			return converter.HashMapToString(*hashmapData), true
+		default:
+			value, ok := (*hashmapData)[key]
 			if !ok {
-				return fmt.Sprintf("Value not present for key %s in hashmap", commands[2]), false
+				return fmt.Sprintf("Value not present for key %s in hashmap", key), false
 			}
 			return value, true
-		default:
-			return "Incorrect number of arguments, please provide argument in form HGET hashmapName key", false
 		}
 	}
 	return "", false
