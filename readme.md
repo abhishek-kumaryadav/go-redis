@@ -7,6 +7,10 @@ https://www.honeybadger.io/blog/golang-logging/
 https://redis.io/kb/doc/1fqjridk8w/what-are-the-impacts-of-the-redis-expiration-algorithm
 https://medium.com/@harshilsokhadia/redis-scan-explained-an-efficient-way-to-extract-keys-3fd120f43b0e
 
+go
+
+https://emretanriverdi.medium.com/graceful-shutdown-in-go-c106fe1a99d9
+https://emretanriverdi.medium.com/concurrency-in-go-1af9349b1103
 
 
 internal/
