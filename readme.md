@@ -6,12 +6,19 @@ https://app.codecrafters.io/courses/redis/introduction
 https://www.honeybadger.io/blog/golang-logging/
 https://redis.io/kb/doc/1fqjridk8w/what-are-the-impacts-of-the-redis-expiration-algorithm
 https://medium.com/@harshilsokhadia/redis-scan-explained-an-efficient-way-to-extract-keys-3fd120f43b0e
+https://www.linkedin.com/pulse/replication-redis-database-yeshwanth-n/
+
+https://medium.com/@daijue/the-basics-of-replication-in-redis-4b92a3b275bd
+
+https://stackoverflow.com/questions/50848042/what-is-internal-implementation-for-redis-master-slave-communication
+
 
 go
 
 https://emretanriverdi.medium.com/graceful-shutdown-in-go-c106fe1a99d9
 https://emretanriverdi.medium.com/concurrency-in-go-1af9349b1103
-
+https://github.com/huandu/skiplist
+https://youtu.be/ol-FaNLXlR0?si=twZXb6XOV122feu2
 
 internal/
 ├── auth/           # Authentication logic
