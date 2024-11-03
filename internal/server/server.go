@@ -21,12 +21,12 @@ const (
 func StartHttpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	port := config.Get("port")
+	port := config.GetString("port")
 	if len(args) == 2 && args[1] != "" {
 		port = args[1]
 	}
 
-	listener, err := net.Listen(TYPE, config.Get("host")+":"+port)
+	listener, err := net.Listen(TYPE, config.GetString("host")+":"+port)
 	if err != nil {
 		log.InfoLog.Fatal("Error: ", err)
 		return
@@ -76,8 +76,11 @@ func handleConnection(c net.Conn) {
 		case datastructure.HASHMAP:
 			response, ok = hashmap.Execute(commands)
 		case datastructure.EXPIRE:
-			response, ok = expire.Execute(commands)
-
+			if config.GetBool("read-only") {
+				response, ok = "Expiry not supported for read-only nodes", true
+			} else {
+				response, ok = expire.Execute(commands)
+			}
 		}
 		if !ok {
 			response = "Error running command: " + response

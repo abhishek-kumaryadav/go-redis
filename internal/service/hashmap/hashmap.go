@@ -2,6 +2,7 @@ package hashmap
 
 import (
 	"fmt"
+	"go-redis/internal/config"
 	"go-redis/internal/repository"
 	"go-redis/internal/service"
 	"go-redis/internal/service/expire"
@@ -21,6 +22,9 @@ func Execute(commands []string) (string, bool) {
 
 	switch commands[0] {
 	case HSET:
+		if config.GetBool("read-only") {
+			return "HSET command not supported for read-only node", false
+		}
 		if len(commands) != 4 {
 			return "Incorrect number of arguments, please provide argument in form HSET hashmapName key value", false
 		}

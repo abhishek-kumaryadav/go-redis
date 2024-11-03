@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"go-redis/internal/config"
 	"go-redis/internal/repository"
 	"go-redis/internal/scheduler/expiryscheduler"
@@ -14,8 +15,11 @@ import (
 )
 
 func main() {
-	config.Init()
-	log.Init(config.Get("log-dir"))
+	configPath := flag.String("config", "./go-redis.conf", "Config file path for this node")
+	flag.Parse()
+
+	config.Init(*configPath)
+	log.Init(config.GetString("log-dir"))
 	repository.Init()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -24,7 +28,9 @@ func main() {
 	wg.Add(2)
 
 	go server.StartHttpServer(ctx, os.Args, &wg)
-	go expiryscheduler.StartScheduler(ctx, &wg)
+	if !config.GetBool("read-only") {
+		go expiryscheduler.StartScheduler(ctx, &wg)
+	}
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
