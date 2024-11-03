@@ -25,7 +25,7 @@ func Execute(commands []string) (string, bool) {
 		return fmt.Sprintf("Key %s does not exist", key), false
 	}
 
-	expiryMetaData, err := service.CastToType[map[string]int](repository.MetadataStore, repository.EXPIRE_KEY, true)
+	expiryMetaData, err := service.CastToType[map[string]int](repository.MetadataStore, repository.ExpireKey, true)
 	if err != nil {
 		return err.Error(), false
 	}
@@ -52,7 +52,7 @@ func Execute(commands []string) (string, bool) {
 }
 
 func CheckAndDeleteExpired(datastructureKey string) (bool, error) {
-	expiryMetaData, err := service.CastToType[map[string]int](repository.MetadataStore, repository.EXPIRE_KEY, true)
+	expiryMetaData, err := service.CastToType[map[string]int](repository.MetadataStore, repository.ExpireKey, true)
 	if err != nil {
 		return false, err
 	}

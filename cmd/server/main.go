@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"go-redis/internal/config"
 	"go-redis/internal/repository"
-	"go-redis/internal/service/scheduler/expiryscheduler"
-	"go-redis/internal/service/server"
+	"go-redis/internal/scheduler/expiryscheduler"
+	"go-redis/internal/server"
 	"go-redis/pkg/utils/log"
 	"os"
 	"os/signal"
@@ -13,8 +14,9 @@ import (
 )
 
 func main() {
-	log.InitLog("build/logs/server.log")
-	repository.InitRepositories()
+	config.Init()
+	log.Init(config.Get("log-dir"))
+	repository.Init()
 
 	ctx, cancel := context.WithCancel(context.Background())
 

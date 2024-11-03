@@ -16,7 +16,7 @@ const (
 )
 
 func main() {
-	log.InitLog("logs/client.log")
+	log.Init("logs/client.log")
 
 	arguments := os.Args
 	if len(arguments) == 1 {

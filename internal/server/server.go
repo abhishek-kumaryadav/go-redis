@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"go-redis/internal/config"
 	"go-redis/internal/service/datastructure"
 	"go-redis/internal/service/expire"
 	"go-redis/internal/service/hashmap"
@@ -14,20 +15,18 @@ import (
 )
 
 const (
-	HOST = "localhost"
-	PORT = "7369"
 	TYPE = "tcp4"
 )
 
 func StartHttpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	port := PORT
+	port := config.Get("port")
 	if len(args) == 2 && args[1] != "" {
 		port = args[1]
 	}
 
-	listener, err := net.Listen(TYPE, HOST+":"+port)
+	listener, err := net.Listen(TYPE, config.Get("host")+":"+port)
 	if err != nil {
 		log.InfoLog.Fatal("Error: ", err)
 		return
