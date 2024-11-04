@@ -30,7 +30,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go server.StartHttpServer(ctx, os.Args, &wg)
+	go server.StartTcpServer(ctx, os.Args, &wg)
 	if !config.GetBool("read-only") {
 		go scheduler.StartExpiryScheduler(ctx, &wg)
 	}
@@ -46,5 +46,5 @@ func main() {
 }
 
 func initAppState() {
-	model.State = model.AppState{ReplicationOffset: 0, ReplicationId: uuid.Must(uuid.NewRandom())}
+	model.State = model.AppState{ReplicationOffset: 0, ReplicationId: uuid.Must(uuid.NewRandom()).String()}
 }

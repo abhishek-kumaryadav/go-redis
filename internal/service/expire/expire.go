@@ -2,16 +2,12 @@ package expire
 
 import (
 	"fmt"
+	"go-redis/internal/model"
 	"go-redis/internal/repository"
 	"go-redis/internal/service"
 	"go-redis/pkg/utils/converter"
 	"go-redis/pkg/utils/log"
 	"time"
-)
-
-const (
-	EXPIRE  = "EXPIRE"
-	PERSIST = "PERSIST"
 )
 
 func Execute(commands []string) (string, bool) {
@@ -33,10 +29,10 @@ func Execute(commands []string) (string, bool) {
 	var resultString string
 	var resultBoolean bool
 	switch subCommand {
-	case PERSIST:
+	case model.PERSIST:
 		delete(*expiryMetaData, key)
 		resultString, resultBoolean = fmt.Sprintf("Successfully removed expiry for key %s", key), true
-	case EXPIRE:
+	case model.EXPIRE:
 		if len(commands) < 3 {
 			return "Invalid number of arguments", false
 		}

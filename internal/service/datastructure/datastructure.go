@@ -1,20 +1,22 @@
 package datastructure
 
 import (
-	"go-redis/internal/service/expire"
-	"go-redis/internal/service/hashmap"
+	"go-redis/internal/model"
 )
 
 const (
-	HASHMAP = "HASHMAP"
-	EXPIRE  = "EXPIRE"
+	HASHMAP     = "HASHMAP"
+	EXPIRE      = "EXPIRE"
+	REPLICATION = "REPLICAOF"
 )
 
 var commandToDatastructureMap = map[string]string{
-	hashmap.HGET:   HASHMAP,
-	hashmap.HSET:   HASHMAP,
-	expire.EXPIRE:  EXPIRE,
-	expire.PERSIST: EXPIRE,
+	model.HGET:      HASHMAP,
+	model.HSET:      HASHMAP,
+	model.EXPIRE:    EXPIRE,
+	model.PERSIST:   EXPIRE,
+	model.REPLICAOF: REPLICATION,
+	model.REPLICA:   REPLICATION,
 }
 
 func GetDataStructureFromCommand(command string) (string, bool) {

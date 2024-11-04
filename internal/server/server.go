@@ -3,9 +3,7 @@ package server
 import (
 	"context"
 	"go-redis/internal/config"
-	"go-redis/internal/service/datastructure"
-	"go-redis/internal/service/expire"
-	"go-redis/internal/service/hashmap"
+	"go-redis/internal/service/commandHandler"
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
 	"net"
@@ -18,7 +16,7 @@ const (
 	TYPE = "tcp4"
 )
 
-func StartHttpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
+func StartTcpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	port := config.GetString("port")
@@ -26,6 +24,7 @@ func StartHttpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 		port = args[1]
 	}
 
+	log.InfoLog.Printf("Starting tcp server on port %s", port)
 	listener, err := net.Listen(TYPE, config.GetString("host")+":"+port)
 	if err != nil {
 		log.InfoLog.Fatal("Error: ", err)
@@ -63,29 +62,8 @@ func handleConnection(c net.Conn) {
 
 	packet := tcp.ReadFromConn(c)
 	commands := strings.Split(string(packet), " ")
-	primaryCommand := strings.TrimSpace(commands[0])
 
-	var response string
-	var ok bool
-
-	result, ok := datastructure.GetDataStructureFromCommand(primaryCommand)
-	if !ok {
-		response = result
-	} else {
-		switch result {
-		case datastructure.HASHMAP:
-			response, ok = hashmap.Execute(commands)
-		case datastructure.EXPIRE:
-			if config.GetBool("read-only") {
-				response, ok = "Expiry not supported for read-only nodes", true
-			} else {
-				response, ok = expire.Execute(commands)
-			}
-		}
-		if !ok {
-			response = "Error running command: " + response
-		}
-	}
+	response := commandHandler.HandleCommands(commands)
 
 	num, _ := c.Write([]byte(response))
 	log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", num, response)

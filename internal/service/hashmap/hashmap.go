@@ -3,16 +3,12 @@ package hashmap
 import (
 	"fmt"
 	"go-redis/internal/config"
+	"go-redis/internal/model"
 	"go-redis/internal/repository"
 	"go-redis/internal/service"
 	"go-redis/internal/service/expire"
 	"go-redis/pkg/utils/converter"
 	"go-redis/pkg/utils/log"
-)
-
-const (
-	HSET = "HSET"
-	HGET = "HGET"
 )
 
 func Execute(commands []string) (string, bool) {
@@ -21,7 +17,7 @@ func Execute(commands []string) (string, bool) {
 	}
 
 	switch commands[0] {
-	case HSET:
+	case model.HSET:
 		if config.GetBool("read-only") {
 			return "HSET command not supported for read-only node", false
 		}
@@ -38,7 +34,7 @@ func Execute(commands []string) (string, bool) {
 		(*hashmapData)[key] = value
 		log.LogExecution(commands)
 		return "Successfully set", true
-	case HGET:
+	case model.HGET:
 		if len(commands) != 2 && len(commands) != 3 {
 			return "Incorrect number of arguments, please provide argument in form HSET hashmapName key value", false
 		}
