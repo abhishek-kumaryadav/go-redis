@@ -1,4 +1,4 @@
-package expiryscheduler
+package scheduler
 
 import (
 	"context"
@@ -12,13 +12,13 @@ import (
 	"time"
 )
 
-// StartScheduler
+// StartExpiryScheduler
 /*
 Official redis implementation uses a sampling algorithm to get a set of keys to check for expiry as it cannot sweep the whole database everytime
 The algorithm checks if the keys are expired and if the number of cleared keys is less than a threshold the routine stops
 The official implementation also keeps a to be expired key list from the sampled keys to minimize the number of expired keys in the memory
 */
-func StartScheduler(ctx context.Context, wg *sync.WaitGroup) {
+func StartExpiryScheduler(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	scheduler := time.NewTicker(5 * time.Second)

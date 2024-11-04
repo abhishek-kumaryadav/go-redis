@@ -36,6 +36,7 @@ func Execute(commands []string) (string, bool) {
 		}
 
 		(*hashmapData)[key] = value
+		log.LogExecution(commands)
 		return "Successfully set", true
 	case HGET:
 		if len(commands) != 2 && len(commands) != 3 {

@@ -20,6 +20,8 @@ https://emretanriverdi.medium.com/concurrency-in-go-1af9349b1103
 https://github.com/huandu/skiplist
 https://youtu.be/ol-FaNLXlR0?si=twZXb6XOV122feu2
 
+https://pkg.go.dev/github.com/bigkevmcd/go-configparser#section-readme
+
 internal/
 ├── auth/           # Authentication logic
 ├── database/       # Database interactions

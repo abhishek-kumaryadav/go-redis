@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/google/uuid"
 	"go-redis/internal/config"
+	"go-redis/internal/model"
 	"go-redis/internal/repository"
-	"go-redis/internal/scheduler/expiryscheduler"
+	"go-redis/internal/scheduler"
 	"go-redis/internal/server"
 	"go-redis/pkg/utils/log"
 	"os"
@@ -21,6 +23,7 @@ func main() {
 	config.Init(*configPath)
 	log.Init(config.GetString("log-dir"))
 	repository.Init()
+	initAppState()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -29,7 +32,7 @@ func main() {
 
 	go server.StartHttpServer(ctx, os.Args, &wg)
 	if !config.GetBool("read-only") {
-		go expiryscheduler.StartScheduler(ctx, &wg)
+		go scheduler.StartExpiryScheduler(ctx, &wg)
 	}
 
 	signalCh := make(chan os.Signal, 1)
@@ -40,4 +43,8 @@ func main() {
 
 	wg.Wait()
 
+}
+
+func initAppState() {
+	model.State = model.AppState{ReplicationOffset: 0, ReplicationId: uuid.Must(uuid.NewRandom())}
 }

@@ -16,6 +16,15 @@ func HashMapToString(hashMap map[string]string) string {
 	return sb.String()
 }
 
+func StringArrToString(arr []string) string {
+	sb := strings.Builder{}
+
+	for _, v := range arr {
+		sb.WriteString(fmt.Sprintf("%s ", v))
+	}
+	return sb.String()
+}
+
 func ConvertStringToEpochMilis(value string) int {
 	timeMilis := int(time.Now().UnixMilli())
 
