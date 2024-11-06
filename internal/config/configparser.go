@@ -9,7 +9,7 @@ import (
 
 var config *configparser.ConfigParser
 
-func Init(path string) {
+func InitConfParser(path string) {
 	var err error
 	config, err = configparser.NewConfigParserFromFile(path)
 
@@ -19,7 +19,7 @@ func Init(path string) {
 	}
 }
 
-func GetString(key string) string {
+func GetConfigValueString(key string) string {
 	value, err := config.Get("DEFAULTS", key)
 	if err != nil {
 		fmt.Printf("Error loading key %s from properties", key)
@@ -28,18 +28,8 @@ func GetString(key string) string {
 	return value
 }
 
-func GetBoolOrDefault(key string, def bool) bool {
-	valueStr := GetString(key)
-	valueBool, err := strconv.ParseBool(valueStr)
-	if err != nil {
-		fmt.Printf("Error loading key %s from properties", key)
-		return def
-	}
-	return valueBool
-}
-
-func GetBool(key string) bool {
-	valueStr := GetString(key)
+func GetConfigValueBool(key string) bool {
+	valueStr := GetConfigValueString(key)
 	valueBool, err := strconv.ParseBool(valueStr)
 	if err != nil {
 		fmt.Printf("Error loading key %s from properties", key)

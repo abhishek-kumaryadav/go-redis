@@ -1,4 +1,4 @@
-package expire
+package datahandler
 
 import (
 	"fmt"
@@ -10,18 +10,18 @@ import (
 	"time"
 )
 
-func Execute(commands []string) (string, bool) {
+func HandleExpiryCommands(commands []string) (string, bool) {
 	if len(commands) < 2 {
 		return "Invalid number of arguments", false
 	}
 	subCommand := commands[0]
 	key := commands[1]
 
-	if _, ok := repository.KeyValueStore[key]; !ok {
+	if _, ok := repository.MemKeyValueStore[key]; !ok {
 		return fmt.Sprintf("Key %s does not exist", key), false
 	}
 
-	expiryMetaData, err := service.CastToType[map[string]int](repository.MetadataStore, repository.ExpireKey, true)
+	expiryMetaData, err := service.CastToType[map[string]int](repository.MemMetadataStore, model.EXPIRE, true)
 	if err != nil {
 		return err.Error(), false
 	}
@@ -48,14 +48,14 @@ func Execute(commands []string) (string, bool) {
 }
 
 func CheckAndDeleteExpired(datastructureKey string) (bool, error) {
-	expiryMetaData, err := service.CastToType[map[string]int](repository.MetadataStore, repository.ExpireKey, true)
+	expiryMetaData, err := service.CastToType[map[string]int](repository.MemMetadataStore, model.EXPIRE, true)
 	if err != nil {
 		return false, err
 	}
 	expiryTime, ok := (*expiryMetaData)[datastructureKey]
 	if ok && expiryTime <= int(time.Now().UnixMilli()) {
-		if _, ok := repository.KeyValueStore[datastructureKey]; ok {
-			delete(repository.KeyValueStore, datastructureKey)
+		if _, ok := repository.MemKeyValueStore[datastructureKey]; ok {
+			delete(repository.MemKeyValueStore, datastructureKey)
 		}
 		return true, fmt.Errorf("the key %s has expired", datastructureKey)
 	}

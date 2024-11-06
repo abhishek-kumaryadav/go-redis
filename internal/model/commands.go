@@ -11,6 +11,9 @@ const (
 )
 
 const (
-	REPLICAOF = "REPLICAOF"
-	REPLICA   = "REPLICA"
+	REPLICA = "REPLICA"
+)
+
+const (
+	REPLICA_OF = "ReplicaOf"
 )

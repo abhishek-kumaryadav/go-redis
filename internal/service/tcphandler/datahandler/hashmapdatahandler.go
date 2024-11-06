@@ -1,4 +1,4 @@
-package hashmap
+package datahandler
 
 import (
 	"fmt"
@@ -6,19 +6,18 @@ import (
 	"go-redis/internal/model"
 	"go-redis/internal/repository"
 	"go-redis/internal/service"
-	"go-redis/internal/service/expire"
 	"go-redis/pkg/utils/converter"
 	"go-redis/pkg/utils/log"
 )
 
-func Execute(commands []string) (string, bool) {
+func HandleHashmapCommands(commands []string) (string, bool) {
 	if len(commands) <= 1 {
 		return "Incorrect number of arguments", false
 	}
 
 	switch commands[0] {
 	case model.HSET:
-		if config.GetBool("read-only") {
+		if config.GetConfigValueBool("read-only") {
 			return "HSET command not supported for read-only node", false
 		}
 		if len(commands) != 4 {
@@ -26,7 +25,7 @@ func Execute(commands []string) (string, bool) {
 		}
 
 		datastructureKey, key, value := commands[1], commands[2], commands[3]
-		hashmapData, err := service.CastToType[map[string]string](repository.KeyValueStore, datastructureKey, true)
+		hashmapData, err := service.CastToType[map[string]string](repository.MemKeyValueStore, datastructureKey, true)
 		if err != nil {
 			return err.Error(), false
 		}
@@ -40,13 +39,13 @@ func Execute(commands []string) (string, bool) {
 		}
 		datastructureKey, key := commands[1], commands[2]
 
-		hashmapData, err := service.CastToType[map[string]string](repository.KeyValueStore, datastructureKey, false)
+		hashmapData, err := service.CastToType[map[string]string](repository.MemKeyValueStore, datastructureKey, false)
 		if err != nil {
 			return err.Error(), false
 		}
 		log.InfoLog.Printf("Extracted hash map data: ", *hashmapData)
 
-		expired, err := expire.CheckAndDeleteExpired(datastructureKey)
+		expired, err := CheckAndDeleteExpired(datastructureKey)
 		if expired {
 			return err.Error(), false
 		}

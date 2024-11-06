@@ -3,7 +3,7 @@ package scheduler
 import (
 	"context"
 	"go-redis/internal/repository"
-	"go-redis/internal/service/expire"
+	"go-redis/internal/service/tcphandler/datahandler"
 	"go-redis/pkg/utils/log"
 	"maps"
 	"math/rand"
@@ -28,7 +28,7 @@ func StartExpiryScheduler(ctx context.Context, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-scheduler.C:
-				keys := slices.Collect(maps.Keys(repository.KeyValueStore))
+				keys := slices.Collect(maps.Keys(repository.MemKeyValueStore))
 				log.InfoLog.Printf("Starting expired keys clearing routine", keys)
 				percentageCleared := 100
 				for percentageCleared > 25 && len(keys) > 0 {
@@ -36,14 +36,14 @@ func StartExpiryScheduler(ctx context.Context, wg *sync.WaitGroup) {
 					log.InfoLog.Printf("Collected seedKeys", seedKeys)
 					countExpired := 0
 					for _, seedKey := range seedKeys {
-						isExpired, _ := expire.CheckAndDeleteExpired(seedKey)
+						isExpired, _ := datahandler.CheckAndDeleteExpired(seedKey)
 						if isExpired {
 							countExpired += 1
 						}
 					}
 					percentageCleared = countExpired / len(seedKeys) * 100
 					log.InfoLog.Printf("Cleared %d %% of expired key", percentageCleared)
-					keys = slices.Collect(maps.Keys(repository.KeyValueStore))
+					keys = slices.Collect(maps.Keys(repository.MemKeyValueStore))
 				}
 
 			}

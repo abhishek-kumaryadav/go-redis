@@ -20,9 +20,9 @@ func main() {
 	configPath := flag.String("config", "./go-redis.conf", "Config file path for this node")
 	flag.Parse()
 
-	config.Init(*configPath)
-	log.Init(config.GetString("log-dir"))
-	repository.Init()
+	config.InitConfParser(*configPath)
+	log.Init(config.GetConfigValueString("log-dir"))
+	repository.InitMemoryRepository()
 	initAppState()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -31,7 +31,7 @@ func main() {
 	wg.Add(2)
 
 	go server.StartTcpServer(ctx, os.Args, &wg)
-	if !config.GetBool("read-only") {
+	if !config.GetConfigValueBool("read-only") {
 		go scheduler.StartExpiryScheduler(ctx, &wg)
 	}
 

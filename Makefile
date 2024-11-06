@@ -1,13 +1,24 @@
-.PHONY: build run clean
+.PHONY: build run kill clean
 
 build:
-	mkdir -p build
+	mkdir -p build/master/logs
+	mkdir -p build/replica1/logs
+	mkdir -p build/clientdir/logs
+
 	go build -o ./build/server ./cmd/server
 	go build -o ./build/client ./cmd/client
-	cp ./build/server ./build/readonly/
+
+	cp ./build/server ./build/master/
+	cp ./build/server ./build/replica1/
+	cp ./build/client ./build/clientdir/
 
 run: build
-	./build/server
+	./build/master/server --config ./build/master/go-redis.conf & echo $$! > build/master/server.pid
+	./build/replica1/server --config ./build/replica1/go-redis.conf & echo $$! > build/replica1/server.pid
+
+kill:
+	if [ -f build/master/server.pid ]; then kill $$(cat build/master/server.pid); fi
+	if [ -f build/replica1/server.pid ]; then kill $$(cat build/replica1/server.pid); fi
 
 clean:
 	rm -rf ./build

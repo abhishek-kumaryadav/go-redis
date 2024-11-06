@@ -19,7 +19,8 @@ https://emretanriverdi.medium.com/graceful-shutdown-in-go-c106fe1a99d9
 https://emretanriverdi.medium.com/concurrency-in-go-1af9349b1103
 https://github.com/huandu/skiplist
 https://youtu.be/ol-FaNLXlR0?si=twZXb6XOV122feu2
-
+https://medium.com/@dsilverdi/graceful-shutdown-in-go-a-polite-way-to-end-programs-6af16e025549
+https://dev.to/antonkuklin/golang-graceful-shutdown-3n6d
 https://pkg.go.dev/github.com/bigkevmcd/go-configparser#section-readme
 
 internal/

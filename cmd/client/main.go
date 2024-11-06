@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
@@ -10,21 +11,22 @@ import (
 )
 
 const (
-	HOST = "localhost"
-	PORT = "7369"
 	TYPE = "tcp4"
 )
 
 func main() {
-	log.Init("logs/client.log")
+	host := flag.String("host", "localhost", "Config file path for this node")
+	port := flag.String("port", "7369", "Config file path for this node")
+	flag.Parse()
+	log.Init("clientdir/logs/client.log")
 
-	arguments := os.Args
+	arguments := flag.Args()
 	if len(arguments) == 1 {
 		log.InfoLog.Fatal("Invalid number of arguments")
 		return
 	}
-	message := strings.Join(arguments[1:], " ")
-	tcpServer, err := net.ResolveTCPAddr(TYPE, HOST+":"+PORT)
+	message := strings.Join(arguments, " ")
+	tcpServer, err := net.ResolveTCPAddr(TYPE, *host+":"+*port)
 	if err != nil {
 		log.InfoLog.Printf("ResolveTCPAddr failed: %s\n", err.Error())
 		os.Exit(1)
