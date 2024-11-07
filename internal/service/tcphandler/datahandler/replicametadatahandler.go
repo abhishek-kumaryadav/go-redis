@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func HandleReplicaMetaDataHandler(commands []string) (string, bool) {
+func HandleReplicaMetaDataHandler(commands []string) (string, error) {
 	subCommand := commands[0]
 	var resString string
-	var resBool bool
+	var resError error
 	switch subCommand {
 	case model.REPLICA:
 		action := commands[1]
@@ -21,7 +21,7 @@ func HandleReplicaMetaDataHandler(commands []string) (string, bool) {
 		case "DETAILS":
 			sb := strings.Builder{}
 			sb.WriteString(fmt.Sprintf("%s", model.State.ReplicationId))
-			resString, resBool = sb.String(), true
+			resString, resError = sb.String(), nil
 		case "LOGS":
 			replicaOffset, _ := strconv.Atoi(commands[2])
 			var replicationLogLine *string = nil
@@ -29,9 +29,9 @@ func HandleReplicaMetaDataHandler(commands []string) (string, bool) {
 				replicationLogLine = log.GetLatestLog(replicaOffset)
 				time.Sleep(time.Second * 5)
 			}
-			return *replicationLogLine, true
+			return *replicationLogLine, nil
 
 		}
 	}
-	return resString, resBool
+	return resString, resError
 }

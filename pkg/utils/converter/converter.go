@@ -25,15 +25,15 @@ func StringArrToString(arr []string) string {
 	return sb.String()
 }
 
-func ConvertStringToEpochMilis(value string) int {
+func ConvertStringToEpochMilis(value string) (int, error) {
 	timeMilis := int(time.Now().UnixMilli())
 
 	ttl, err := strconv.Atoi(value)
 	if err != nil {
 		// ... handle error
-		panic(err)
+		return 0, fmt.Errorf("ConvertStringToEpochMilis: Error: %w", err)
 	}
 
 	timeMilis += ttl
-	return timeMilis
+	return timeMilis, nil
 }

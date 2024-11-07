@@ -6,20 +6,20 @@ import (
 	"go-redis/internal/service/tcphandler/datahandler"
 )
 
-func HandleDataCommands(commands []string, ds string) (string, bool) {
+func HandleDataCommands(commands []string, ds string) (string, error) {
 	var response string
-	var ok bool
+	var err error
 	switch ds {
-	case model.HASHMAPDATA:
-		response, ok = datahandler.HandleHashmapCommands(commands)
+	case model.HASHMAP_DATA:
+		response, err = datahandler.HandleHashmapCommands(commands)
 	case model.EXPIRE:
 		if config.GetConfigValueBool("read-only") {
-			response, ok = "Expiry not supported for read-only nodes", true
+			response, err = "Expiry not supported for read-only nodes", nil
 		} else {
-			response, ok = datahandler.HandleExpiryCommands(commands)
+			response, err = datahandler.HandleExpiryCommands(commands)
 		}
-	case model.REPLICAMETA:
-		response, ok = datahandler.HandleReplicaMetaDataHandler(commands)
+	case model.REPLICA_META:
+		response, err = datahandler.HandleReplicaMetaDataHandler(commands)
 	}
-	return response, ok
+	return response, err
 }

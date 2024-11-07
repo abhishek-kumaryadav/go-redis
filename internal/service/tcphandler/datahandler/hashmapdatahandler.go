@@ -10,56 +10,59 @@ import (
 	"go-redis/pkg/utils/log"
 )
 
-func HandleHashmapCommands(commands []string) (string, bool) {
+func HandleHashmapCommands(commands []string) (string, error) {
 	if len(commands) <= 1 {
-		return "Incorrect number of arguments", false
+		return "", fmt.Errorf("incorrect number of arguments")
 	}
 
 	switch commands[0] {
 	case model.HSET:
 		if config.GetConfigValueBool("read-only") {
-			return "HSET command not supported for read-only node", false
+			return "", fmt.Errorf("HSET command not supported for read-only node")
 		}
 		if len(commands) != 4 {
-			return "Incorrect number of arguments, please provide argument in form HSET hashmapName key value", false
+			return "", fmt.Errorf("incorrect number of arguments, please provide argument in form HSET hashmapName key value")
 		}
 
 		datastructureKey, key, value := commands[1], commands[2], commands[3]
 		hashmapData, err := service.CastToType[map[string]string](repository.MemKeyValueStore, datastructureKey, true)
 		if err != nil {
-			return err.Error(), false
+			return "", fmt.Errorf("error HandleHashmapCommands: %w", err)
+		}
+		if err != nil {
+			return "", fmt.Errorf("error HandleHashmapCommands: %w", err)
 		}
 
 		(*hashmapData)[key] = value
 		log.LogExecution(commands)
-		return "Successfully set", true
+		return "Successfully set", nil
 	case model.HGET:
 		if len(commands) != 2 && len(commands) != 3 {
-			return "Incorrect number of arguments, please provide argument in form HSET hashmapName key value", false
+			return "", fmt.Errorf("Incorrect number of arguments, please provide argument in form HSET hashmapName key value")
 		}
 		datastructureKey, key := commands[1], commands[2]
 
 		hashmapData, err := service.CastToType[map[string]string](repository.MemKeyValueStore, datastructureKey, false)
 		if err != nil {
-			return err.Error(), false
+			return "", fmt.Errorf("error HandleHashmapCommands: %w", err)
 		}
 		log.InfoLog.Printf("Extracted hash map data: ", *hashmapData)
 
 		expired, err := CheckAndDeleteExpired(datastructureKey)
 		if expired {
-			return err.Error(), false
+			return "", fmt.Errorf("error HandleHashmapCommands: %w", err)
 		}
 
 		switch key {
 		case "*":
-			return converter.HashMapToString(*hashmapData), true
+			return converter.HashMapToString(*hashmapData), nil
 		default:
 			value, ok := (*hashmapData)[key]
 			if !ok {
-				return fmt.Sprintf("Value not present for key %s in hashmap", key), false
+				return "", fmt.Errorf("Value not present for key %s in hashmap", key)
 			}
-			return value, true
+			return value, nil
 		}
 	}
-	return "", false
+	return "", fmt.Errorf("error HandleHashmapCommands unable to process requests")
 }

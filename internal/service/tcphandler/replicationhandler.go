@@ -16,32 +16,31 @@ const (
 	TYPE = "tcp4"
 )
 
-func HandleReplication(commands []string) (string, bool) {
+func HandleReplication(commands []string) (string, error) {
 	subCommand := commands[0]
 	var resString string
-	var resBool bool
+	var resError error
 	switch subCommand {
 	case model.REPLICA_OF:
 		if len(commands) != 3 {
-			return "Invalid number of arguments", false
+			return "", fmt.Errorf("invalid number of commands")
 		}
 		host := commands[1]
 		port := commands[2]
-		//todo
 		tcpServer, err := net.ResolveTCPAddr(TYPE, host+":"+port)
 		if err != nil {
-			return "ResolveTCPAddr failed: %s", false
+			return "", fmt.Errorf("resolveTCPAddr failed: %w", err)
 		}
 
 		conn, err := net.DialTCP(TYPE, nil, tcpServer)
 		if err != nil {
-			return "Dial failed: %s", false
+			return "", fmt.Errorf("dial failed: %w", err)
 		}
 
-		_, err = conn.Write([]byte("REPLICA DETAILS"))
+		_, err = conn.Write([]byte(model.REPLICA + " " + model.DETAILS))
 		conn.CloseWrite()
 		if err != nil {
-			return fmt.Sprintf("Write data failed: %s\n", err.Error()), false
+			return "", fmt.Errorf("write data failed: %w", err)
 		}
 
 		packet := tcp.ReadFromTcpConn(conn)
@@ -51,18 +50,18 @@ func HandleReplication(commands []string) (string, bool) {
 			model.State.ReplicationId = masterReplicationId
 			model.State.ReplicationOffset = 0
 		}
-		resString, resBool = fmt.Sprintf("Started replicating from master\nMaster Replication Id: %s\nReplica Offset: %d",
-			model.State.ReplicationId, model.State.ReplicationOffset), true
+		resString, resError = fmt.Sprintf("Started replicating from amaster\nMaster Replication Id: %s\nReplica Offset: %d",
+			model.State.ReplicationId, model.State.ReplicationOffset), nil
 		go replicate(conn)
 	}
-	return resString, resBool
+	return resString, resError
 }
 
 func replicate(conn *net.TCPConn) {
 	defer conn.Close()
 
 	for {
-		_, err := conn.Write([]byte(fmt.Sprintf("REPLICA LOGS %d", model.State.ReplicationOffset)))
+		_, err := conn.Write([]byte(fmt.Sprintf("%s %s %d", model.REPLICA, model.LOGS, model.State.ReplicationOffset)))
 		conn.CloseWrite()
 		if err != nil {
 			log.InfoLog.Printf("Write data failed: %s\n", err.Error())
@@ -73,15 +72,20 @@ func replicate(conn *net.TCPConn) {
 		masterOffset, err := strconv.Atoi(packetList[0])
 		if err != nil {
 			log.ErrorLog.Printf("Invalid response from master")
-			continue
+			os.Exit(1)
 		}
 		if masterOffset > model.State.ReplicationOffset {
 			model.State.ReplicationOffset = masterOffset
-			result, ok := util.GetFlowFromCommand(packetList[1])
-			if !ok {
+			result, err := util.GetFlowFromCommand(packetList[1])
+			if err != nil {
 				log.ErrorLog.Printf("Error getting datastructure for command read")
+				os.Exit(1)
 			}
-			HandleDataCommands(packetList[1:], result)
+			_, err = HandleDataCommands(packetList[1:], result)
+			if err != nil {
+				log.ErrorLog.Printf("Error replicate: %w", err)
+				os.Exit(1)
+			}
 		}
 	}
 }

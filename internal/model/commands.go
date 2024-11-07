@@ -12,8 +12,10 @@ const (
 
 const (
 	REPLICA = "REPLICA"
+	DETAILS = "DETAILS"
+	LOGS    = "LOGS"
 )
 
 const (
-	REPLICA_OF = "ReplicaOf"
+	REPLICA_OF = "REPLICA_OF"
 )

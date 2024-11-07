@@ -1,5 +1,5 @@
 package model
 
 const (
-	ASYNCFLOW = "ASYNCFLOW"
+	ASYNC_FLOW = "ASYNC_FLOW"
 )

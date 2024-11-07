@@ -7,6 +7,7 @@ import (
 	"go-redis/pkg/utils/log"
 	"maps"
 	"math/rand"
+	"os"
 	"slices"
 	"sync"
 	"time"
@@ -30,13 +31,15 @@ func StartExpiryScheduler(ctx context.Context, wg *sync.WaitGroup) {
 			case <-scheduler.C:
 				keys := slices.Collect(maps.Keys(repository.MemKeyValueStore))
 				log.InfoLog.Printf("Starting expired keys clearing routine", keys)
+
 				percentageCleared := 100
 				for percentageCleared > 25 && len(keys) > 0 {
 					seedKeys := getSeedKeys(keys)
 					log.InfoLog.Printf("Collected seedKeys", seedKeys)
 					countExpired := 0
 					for _, seedKey := range seedKeys {
-						isExpired, _ := datahandler.CheckAndDeleteExpired(seedKey)
+						isExpired, err := datahandler.CheckAndDeleteExpired(seedKey)
+						log.ErrorLog.Printf("Error while deleting expired keys: %s", err.Error())
 						if isExpired {
 							countExpired += 1
 						}
@@ -45,7 +48,6 @@ func StartExpiryScheduler(ctx context.Context, wg *sync.WaitGroup) {
 					log.InfoLog.Printf("Cleared %d %% of expired key", percentageCleared)
 					keys = slices.Collect(maps.Keys(repository.MemKeyValueStore))
 				}
-
 			}
 		}
 	}()
@@ -61,6 +63,7 @@ func StartExpiryScheduler(ctx context.Context, wg *sync.WaitGroup) {
 		err := scheduler.Stop
 		if err != nil {
 			log.ErrorLog.Printf("Expiry scheduler shutdown error: %s\n", err)
+			os.Exit(1)
 		}
 	}
 }
