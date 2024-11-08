@@ -22,7 +22,7 @@ The official implementation also keeps a to be expired key list from the sampled
 func StartExpiryScheduler(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	scheduler := time.NewTicker(5 * time.Second)
+	scheduler := time.NewTicker(5 * time.Minute)
 
 	go func() {
 

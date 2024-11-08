@@ -1,25 +1,45 @@
 package tcphandler
 
 import (
+	"fmt"
 	"go-redis/internal/config"
 	"go-redis/internal/model"
+	"go-redis/internal/model/commandmodel"
+	"go-redis/internal/model/commandresult"
 	"go-redis/internal/service/tcphandler/datahandler"
+	"net"
 )
 
-func HandleDataCommands(commands []string, ds string) (string, error) {
-	var response string
-	var err error
+func HandleDataCommands(commands []string, ds string, c net.Conn) commandresult.CommandResult {
+	var result commandresult.CommandResult
 	switch ds {
 	case model.HASHMAP_DATA:
-		response, err = datahandler.HandleHashmapCommands(commands)
-	case model.EXPIRE:
-		if config.GetConfigValueBool("read-only") {
-			response, err = "Expiry not supported for read-only nodes", nil
+		result = datahandler.HandleHashmapCommands(commands)
+		result.Conn = c
+		result.Bind(writeAndCloseConnection).LogResult()
+	case commandmodel.EXPIRE:
+		if config.GetConfigValueBool(model.READ_ONLY) {
+			result = commandresult.CommandResult{Err: fmt.Errorf("expiry not supported for read-only nodes"), Conn: c}
+			result.Conn = c
+			result.Bind(writeAndCloseConnection).LogResult()
 		} else {
-			response, err = datahandler.HandleExpiryCommands(commands)
+			result = datahandler.HandleExpiryCommands(commands)
+			result.Conn = c
+			result.Bind(writeAndCloseConnection).LogResult()
 		}
 	case model.REPLICA_META:
-		response, err = datahandler.HandleReplicaMetaDataHandler(commands)
+		result = datahandler.HandleReplicaMetaDataHandler(commands)
+		result.Conn = c
+		result.Bind(writeAndCloseConnection).LogResult()
 	}
-	return response, err
+	return result
+}
+
+func writeAndCloseConnection(result commandresult.CommandResult) commandresult.CommandResult {
+	if result.Conn == nil {
+		return result
+	}
+	defer result.Conn.Close()
+	num, _ := result.Conn.Write([]byte(result.Response))
+	return commandresult.CommandResult{Response: result.Response, Err: result.Err, Conn: nil, BytesWritten: num}
 }

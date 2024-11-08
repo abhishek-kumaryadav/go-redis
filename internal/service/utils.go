@@ -9,7 +9,7 @@ func CastToType[T any](repository map[string]interface{}, key string, create boo
 	data, ok := repository[key]
 	if !ok {
 		if !create {
-			return nil, fmt.Errorf("Value not present for key %s", key)
+			return nil, fmt.Errorf("Response not present for key %s", key)
 		} else {
 			temp := allocateMemory[T]()
 			data = &temp

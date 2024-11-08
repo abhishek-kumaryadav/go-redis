@@ -12,13 +12,13 @@ build:
 	cp ./build/server ./build/replica1/
 	cp ./build/client ./build/clientdir/
 
-run: build
+kill:
+	- if [ -f build/master/server.pid ]; then kill $$(cat build/master/server.pid); fi
+	- if [ -f build/replica1/server.pid ]; then kill $$(cat build/replica1/server.pid); fi
+
+run: build kill
 	./build/master/server --config ./build/master/go-redis.conf & echo $$! > build/master/server.pid
 	./build/replica1/server --config ./build/replica1/go-redis.conf & echo $$! > build/replica1/server.pid
-
-kill:
-	if [ -f build/master/server.pid ]; then kill $$(cat build/master/server.pid); fi
-	if [ -f build/replica1/server.pid ]; then kill $$(cat build/replica1/server.pid); fi
 
 clean:
 	rm -rf ./build

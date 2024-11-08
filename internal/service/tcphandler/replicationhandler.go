@@ -3,6 +3,8 @@ package tcphandler
 import (
 	"fmt"
 	"go-redis/internal/model"
+	"go-redis/internal/model/commandmodel"
+	"go-redis/internal/model/commandresult"
 	"go-redis/internal/service/util"
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
@@ -16,52 +18,66 @@ const (
 	TYPE = "tcp4"
 )
 
-func HandleReplication(commands []string) (string, error) {
+func HandleReplication(commands []string, clientConnection net.Conn) {
 	subCommand := commands[0]
-	var resString string
-	var resError error
 	switch subCommand {
-	case model.REPLICA_OF:
+	case commandmodel.REPLICA_OF:
 		if len(commands) != 3 {
-			return "", fmt.Errorf("invalid number of commands")
+			writeErrorStringAndLog("invalid number of commands", clientConnection)
 		}
 		host := commands[1]
 		port := commands[2]
 		tcpServer, err := net.ResolveTCPAddr(TYPE, host+":"+port)
 		if err != nil {
-			return "", fmt.Errorf("resolveTCPAddr failed: %w", err)
+			writeErrorAndLog(err, clientConnection)
 		}
 
-		conn, err := net.DialTCP(TYPE, nil, tcpServer)
+		masterConnection, err := net.DialTCP(TYPE, nil, tcpServer)
 		if err != nil {
-			return "", fmt.Errorf("dial failed: %w", err)
+			writeErrorAndLog(err, clientConnection)
 		}
 
-		_, err = conn.Write([]byte(model.REPLICA + " " + model.DETAILS))
-		conn.CloseWrite()
+		_, err = masterConnection.Write([]byte(commandmodel.REPLICA + " " + commandmodel.DETAILS))
+		//masterConnection.CloseWrite()
 		if err != nil {
-			return "", fmt.Errorf("write data failed: %w", err)
+			writeErrorAndLog(err, clientConnection)
 		}
 
-		packet := tcp.ReadFromTcpConn(conn)
-		packetList := strings.Split(string(packet), "")
+		packet := tcp.ReadFromTcpConn(masterConnection)
+		log.InfoLog.Printf(string(packet))
+		packetList := strings.Split(string(packet), " ")
 		masterReplicationId := packetList[0]
 		if model.State.ReplicationId != masterReplicationId {
 			model.State.ReplicationId = masterReplicationId
 			model.State.ReplicationOffset = 0
 		}
-		resString, resError = fmt.Sprintf("Started replicating from amaster\nMaster Replication Id: %s\nReplica Offset: %d",
-			model.State.ReplicationId, model.State.ReplicationOffset), nil
-		go replicate(conn)
+		commandresult.CommandResult{Response: fmt.Sprintf("Started replicating from master\nMaster Replication Id: %s\nReplica Offset: %d",
+			model.State.ReplicationId, model.State.ReplicationOffset), Conn: clientConnection}.Bind(writeAndCloseConnection).LogResult()
+
+		_, err = masterConnection.Write([]byte(fmt.Sprintf("%s %s %d", commandmodel.REPLICA, commandmodel.LOGS, model.State.ReplicationOffset)))
+		masterConnection.CloseWrite()
+		if err != nil {
+			log.InfoLog.Printf("Write data failed: %s\n", err.Error())
+			os.Exit(1)
+		}
+		packet = tcp.ReadFromTcpConn(masterConnection)
+		log.InfoLog.Printf(string(packet))
+		//go replicate(masterConnection)
 	}
-	return resString, resError
+}
+
+func writeErrorAndLog(error error, c net.Conn) {
+	commandresult.CommandResult{Err: error, Conn: c}.Bind(writeAndCloseConnection).LogResult()
+}
+
+func writeErrorStringAndLog(error string, c net.Conn) {
+	writeErrorAndLog(fmt.Errorf(error), c)
 }
 
 func replicate(conn *net.TCPConn) {
-	defer conn.Close()
-
+	//defer conn.Close()
 	for {
-		_, err := conn.Write([]byte(fmt.Sprintf("%s %s %d", model.REPLICA, model.LOGS, model.State.ReplicationOffset)))
+		_, err := conn.Write([]byte(fmt.Sprintf("%s %s %d", commandmodel.REPLICA, commandmodel.LOGS, model.State.ReplicationOffset)))
 		conn.CloseWrite()
 		if err != nil {
 			log.InfoLog.Printf("Write data failed: %s\n", err.Error())
@@ -81,9 +97,9 @@ func replicate(conn *net.TCPConn) {
 				log.ErrorLog.Printf("Error getting datastructure for command read")
 				os.Exit(1)
 			}
-			_, err = HandleDataCommands(packetList[1:], result)
-			if err != nil {
-				log.ErrorLog.Printf("Error replicate: %w", err)
+			commandResult := HandleDataCommands(packetList[1:], result, conn)
+			if commandResult.Err != nil {
+				log.ErrorLog.Printf("Error replicate: %s", err.Error())
 				os.Exit(1)
 			}
 		}

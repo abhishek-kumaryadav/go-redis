@@ -3,17 +3,18 @@ package util
 import (
 	"fmt"
 	"go-redis/internal/model"
+	"go-redis/internal/model/commandmodel"
 )
 
 var commandToDatastructureMap = map[string]string{
-	model.HGET:       model.HASHMAP_DATA,
-	model.HSET:       model.HASHMAP_DATA,
-	model.EXPIRE:     model.EXPIRE_META,
-	model.PERSIST:    model.EXPIRE_META,
-	model.REPLICA_OF: model.ASYNC_FLOW,
-	model.REPLICA:    model.REPLICA_META,
-	model.DETAILS:    model.REPLICA_META,
-	model.LOGS:       model.REPLICA_META,
+	commandmodel.HGET:       model.HASHMAP_DATA,
+	commandmodel.HSET:       model.HASHMAP_DATA,
+	commandmodel.EXPIRE:     model.EXPIRE_META,
+	commandmodel.PERSIST:    model.EXPIRE_META,
+	commandmodel.REPLICA_OF: model.ASYNC_FLOW,
+	commandmodel.REPLICA:    model.REPLICA_META,
+	commandmodel.DETAILS:    model.REPLICA_META,
+	commandmodel.LOGS:       model.REPLICA_META,
 }
 
 func GetFlowFromCommand(command string) (string, error) {

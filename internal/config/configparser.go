@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"github.com/bigkevmcd/go-configparser"
-	"go-redis/pkg/utils/log"
 	"os"
 	"strconv"
 )
@@ -33,7 +32,7 @@ func GetConfigValueBool(key string) bool {
 	valueStr := GetConfigValueString(key)
 	valueBool, err := strconv.ParseBool(valueStr)
 	if err != nil {
-		log.ErrorLog.Printf("Error loading key %s from properties", key)
+		fmt.Printf("Error loading key %s from properties", key)
 		os.Exit(1)
 	}
 	return valueBool

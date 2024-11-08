@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"go-redis/internal/config"
 	"go-redis/internal/model"
 	"go-redis/internal/service/tcphandler"
@@ -61,35 +60,28 @@ func StartTcpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 }
 
 func handleConnection(c net.Conn) {
-	defer c.Close()
 	log.InfoLog.Printf("Serving %s\n", c.RemoteAddr().String())
 
 	packet := tcp.ReadFromConn(c)
 	commands := strings.Split(string(packet), " ")
 
-	var response string
-	var err error
 	primaryCommand := strings.TrimSpace(commands[0])
 	result, err := util.GetFlowFromCommand(primaryCommand)
 	if err != nil {
-		response = result
+		num, _ := c.Write([]byte(err.Error()))
+		log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", num, err.Error())
 	} else {
 		switch result {
 		case model.ASYNC_FLOW:
 			if config.GetConfigValueBool(model.READ_ONLY) {
-				response, err = tcphandler.HandleReplication(commands)
+				tcphandler.HandleReplication(commands, c)
 			} else {
-				response, err = "", fmt.Errorf("Can only set read only server as replica")
+				num, _ := c.Write([]byte("Error: Can only set read only server as replica"))
+				log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", num, "Error: Can only set read only server as replica")
 			}
 		default:
-			response, err = tcphandler.HandleDataCommands(commands, result)
-		}
-
-		if err != nil {
-			response = "Error running command: " + response
+			tcphandler.HandleDataCommands(commands, result, c)
 		}
 	}
 
-	num, _ := c.Write([]byte(response))
-	log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", num, response)
 }
