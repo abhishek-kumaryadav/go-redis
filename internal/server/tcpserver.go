@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	TYPE = "tcp4"
+	TYPE    = "tcp4"
+	HOST_IP = "127.0.0.1"
 )
 
 func StartTcpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
@@ -33,7 +34,7 @@ func StartTcpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 	log.InfoLog.Printf("Starting tcp server on port %s", port)
 
 	tcpAddr := net.TCPAddr{
-		IP:   net.ParseIP("127.0.0.1"),
+		IP:   net.ParseIP(HOST_IP),
 		Port: portInt,
 	}
 	listener, err := net.ListenTCP(TYPE, &tcpAddr)

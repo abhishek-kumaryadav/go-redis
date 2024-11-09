@@ -23,10 +23,20 @@ func (r CommandResult) Bind(f func(result CommandResult) CommandResult) CommandR
 	return f(r)
 }
 
-func (r CommandResult) LogResult() {
+func (r CommandResult) LogResult() CommandResult {
 	if r.Err != nil {
 		log.ErrorLog.Printf("Error running command: %s", r.Err.Error())
 	} else {
 		log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", r.MsgLength, r.Response)
 	}
+	return r
+}
+
+func LogResult(r CommandResult) CommandResult {
+	if r.Err != nil {
+		log.ErrorLog.Printf("Error running command: %s", r.Err.Error())
+	} else {
+		log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", r.MsgLength, r.Response)
+	}
+	return r
 }
