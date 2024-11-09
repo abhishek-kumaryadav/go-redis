@@ -9,7 +9,6 @@ import (
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -21,53 +20,60 @@ const (
 func HandleReplication(commands []string, clientConnection net.TCPConn) {
 	subCommand := commands[0]
 	switch subCommand {
+
 	case commandmodel.REPLICA_OF:
 		if len(commands) != 3 {
 			writeErrorStringAndLog("invalid number of commands", clientConnection)
+			return
 		}
+
 		host := commands[1]
 		port := commands[2]
 		tcpServer, err := net.ResolveTCPAddr(TYPE, host+":"+port)
 		if err != nil {
 			writeErrorAndLog(err, clientConnection)
+			return
 		}
 
+		// Establish TCP connection
 		masterConnection, err := net.DialTCP(TYPE, nil, tcpServer)
 		if err != nil {
 			writeErrorAndLog(err, clientConnection)
+			return
 		}
 
-		_, err = masterConnection.Write([]byte(commandmodel.REPLICA + " " + commandmodel.DETAILS))
-		//masterConnection.CloseWrite()
+		// Get Replication ID
+		cr := tcp.SendMessage(commandresult.CommandResult{Response: commandmodel.REPLICA + " " + commandmodel.DETAILS, Conn: *masterConnection})
+		if cr.Err != nil {
+			writeErrorAndLog(err, clientConnection)
+			return
+		}
+
+		packet, err := tcp.ReadFromConn(*masterConnection)
 		if err != nil {
 			writeErrorAndLog(err, clientConnection)
+			return
 		}
 
-		packet, _ := tcp.ReadFromConn(*masterConnection)
-		log.InfoLog.Printf(string(packet))
-		packetList := strings.Split(string(packet), " ")
-		masterReplicationId := packetList[0]
+		log.InfoLog.Printf("Received master replication meta: %s", packet)
+		masterReplicationId := strings.Split(packet, " ")[0]
 		if model.State.ReplicationId != masterReplicationId {
 			model.State.ReplicationId = masterReplicationId
 			model.State.ReplicationOffset = 0
 		}
-		commandresult.CommandResult{Response: fmt.Sprintf("Started replicating from master\nMaster Replication Id: %s\nReplica Offset: %d",
-			model.State.ReplicationId, model.State.ReplicationOffset), Conn: clientConnection}.Bind(tcp.SendMessage).LogResult()
-
-		_, err = masterConnection.Write([]byte(fmt.Sprintf("%s %s %d", commandmodel.REPLICA, commandmodel.LOGS, model.State.ReplicationOffset)))
-		masterConnection.CloseWrite()
-		if err != nil {
-			log.InfoLog.Printf("Write data failed: %s\n", err.Error())
-			os.Exit(1)
+		cr = tcp.SendMessage(commandresult.CommandResult{Response: fmt.Sprintf("Started replicating from master\nMaster Replication Id: %s\nReplica Offset: %d",
+			model.State.ReplicationId, model.State.ReplicationOffset), Conn: clientConnection})
+		if cr.Err != nil {
+			return
 		}
-		packet, _ = tcp.ReadFromConn(*masterConnection)
-		log.InfoLog.Printf(string(packet))
+
+		// Start replication
 		go replicate(masterConnection)
 	}
 }
 
 func writeErrorAndLog(error error, c net.TCPConn) {
-	commandresult.CommandResult{Err: error, Conn: c}.Bind(tcp.SendMessage).LogResult()
+	tcp.SendMessage(commandresult.CommandResult{Err: error, Conn: c})
 }
 
 func writeErrorStringAndLog(error string, c net.TCPConn) {
@@ -77,28 +83,42 @@ func writeErrorStringAndLog(error string, c net.TCPConn) {
 func replicate(conn *net.TCPConn) {
 	//defer conn.Close()
 	for {
-		result := tcp.SendMessage(commandresult.CommandResult{Response: fmt.Sprintf("%s %s %d", commandmodel.REPLICA, commandmodel.LOGS, model.State.ReplicationOffset)})
-		if result.Err != nil {
-			os.Exit(1)
+		// Send fetch log command
+		cr := tcp.SendMessage(commandresult.CommandResult{
+			Response: fmt.Sprintf("%s %s %d", commandmodel.REPLICA, commandmodel.LOGS, model.State.ReplicationOffset),
+			Conn:     *conn})
+		if cr.Err != nil {
+			continue
 		}
-		packet, _ := tcp.ReadFromConn(*conn)
-		packetList := strings.Split(string(packet), " ")
-		masterOffset, err := strconv.Atoi(packetList[0])
+
+		// Block read
+		packet, err := tcp.ReadFromConn(*conn)
 		if err != nil {
-			log.ErrorLog.Printf("Invalid response from master")
-			os.Exit(1)
+			log.ErrorLog.Printf("Error reading from master: %s", err.Error())
+			continue
 		}
+
+		// Process replica log line
+		packetList := strings.Split(packet, " ")
+		masterOffset, err := strconv.Atoi(packetList[0])
+		commandList := packetList[1:]
+		if err != nil {
+			log.ErrorLog.Printf("Invalid response from master %s", err.Error())
+			continue
+		}
+
 		if masterOffset > model.State.ReplicationOffset {
-			model.State.ReplicationOffset = masterOffset
-			result, err := util.GetFlowFromCommand(packetList[1])
-			if err != nil {
+			result, err := util.GetFlowFromCommand(commandList[0])
+			if err != nil || result == model.ASYNC_FLOW {
 				log.ErrorLog.Printf("Error getting datastructure for command read")
-				os.Exit(1)
+				continue
 			}
-			commandResult := HandleDataCommands(packetList[1:], result, *conn)
+			commandResult := HandleDataCommands(commandList, result, *conn)
 			if commandResult.Err != nil {
 				log.ErrorLog.Printf("Error replicate: %s", err.Error())
-				os.Exit(1)
+				continue
+			} else {
+				model.State.ReplicationOffset = masterOffset
 			}
 		}
 	}

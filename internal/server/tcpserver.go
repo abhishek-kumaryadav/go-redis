@@ -25,33 +25,19 @@ const (
 func StartTcpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	port := config.GetConfigValueString("port")
-	if len(args) == 2 && args[1] != "" {
-		port = args[1]
-	}
-	portInt, _ := strconv.Atoi(port)
+	portInt := getPortFromConfig(args)
+	log.InfoLog.Printf("Starting tcp server on port %d", portInt)
 
-	log.InfoLog.Printf("Starting tcp server on port %s", port)
+	listener := resoleTCPConnection(portInt)
 
-	tcpAddr := net.TCPAddr{
-		IP:   net.ParseIP(HOST_IP),
-		Port: portInt,
-	}
-	listener, err := net.ListenTCP(TYPE, &tcpAddr)
-	if err != nil {
-		log.ErrorLog.Fatal("Error: ", err)
-		os.Exit(1)
-	}
-
-	//tcpListener := listener.(*net.TCPListener)
 	go func() {
 		for {
 			connection, err := listener.AcceptTCP()
 			if err != nil {
-				log.ErrorLog.Fatal("Error: ", err)
-				os.Exit(1)
+				log.ErrorLog.Printf("Unable to accept TCP connection: ", err)
+				continue
 			}
-			go handleConnection(*connection)
+			go handleConnection(ctx, *connection)
 		}
 	}()
 
@@ -69,36 +55,71 @@ func StartTcpServer(ctx context.Context, args []string, wg *sync.WaitGroup) {
 	}
 }
 
-func handleConnection(c net.TCPConn) {
-	log.InfoLog.Printf("Serving %s\n", c.RemoteAddr().String())
+func resoleTCPConnection(portInt int) *net.TCPListener {
+	tcpAddr := net.TCPAddr{
+		IP:   net.ParseIP(HOST_IP),
+		Port: portInt,
+	}
+	listener, err := net.ListenTCP(TYPE, &tcpAddr)
+	if err != nil {
+		log.ErrorLog.Printf("Unable to create listener connection: ", err)
+		os.Exit(1)
+	}
 
-	for {
-		stringPacket, err := tcp.ReadFromConn(c)
-		if err != nil {
-			num, _ := c.Write([]byte(err.Error()))
-			log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", num, err.Error())
-			os.Exit(1)
-		}
-		commands := strings.Split(stringPacket, " ")
+	return listener
+}
 
-		log.InfoLog.Printf(strings.Join(commands, " "))
-		primaryCommand := strings.TrimSpace(commands[0])
-		flow, err := util.GetFlowFromCommand(primaryCommand)
-		if err != nil {
-			log.InfoLog.Printf(err.Error())
-			tcp.SendMessage(commandresult.CommandResult{Err: err}).LogResult()
-		} else {
-			switch flow {
-			case model.ASYNC_FLOW:
-				if config.GetConfigValueBool(model.READ_ONLY) {
-					tcphandler.HandleReplication(commands, c)
-				} else {
-					num, _ := c.Write([]byte("Error: Can only set read only server as replica"))
-					log.InfoLog.Printf("Wrote back %d bytes, the payload is %s\n", num, "Error: Can only set read only server as replica")
-				}
-			default:
-				tcphandler.HandleDataCommands(commands, flow, c)
+func getPortFromConfig(args []string) int {
+	port := config.GetConfigValueString("port")
+	if len(args) == 2 && args[1] != "" {
+		port = args[1]
+	}
+	portInt, _ := strconv.Atoi(port)
+	return portInt
+}
+
+func handleConnection(ctx context.Context, c net.TCPConn) {
+	go func() {
+		log.InfoLog.Printf("Serving %s\n", c.RemoteAddr().String())
+		for {
+			// read and extract commands
+			stringPacket, err := tcp.ReadFromConn(c)
+			if err != nil {
+				tcp.SendMessage(commandresult.CommandResult{Err: err})
+				continue
 			}
+			commands := strings.Split(stringPacket, " ")
+			log.InfoLog.Printf(strings.Join(commands, " "))
+
+			flow, err := util.GetFlowFromCommand(strings.TrimSpace(commands[0]))
+			if err != nil {
+				tcp.SendMessage(commandresult.CommandResult{Err: err, Conn: c})
+				continue
+			} else {
+				switch flow {
+				case model.ASYNC_FLOW:
+					if config.GetConfigValueBool(model.READ_ONLY) {
+						tcphandler.HandleReplication(commands, c)
+					} else {
+						tcp.SendMessage(commandresult.CommandResult{Response: "Error: Can only set read only server as replica", Conn: c})
+					}
+				default:
+					tcphandler.HandleDataCommands(commands, flow, c)
+				}
+			}
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// Shutdown the server gracefully
+		log.InfoLog.Printf("Shutting down TCP connection gracefully...")
+		_, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelShutdown()
+
+		err := c.Close()
+		if err != nil {
+			log.ErrorLog.Printf("TCP connection shutdown error: %s\n", err)
 		}
 	}
 

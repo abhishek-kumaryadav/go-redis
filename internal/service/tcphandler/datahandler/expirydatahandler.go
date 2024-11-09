@@ -27,15 +27,19 @@ func HandleExpiryCommands(commands []string) commandresult.CommandResult {
 	}
 
 	switch subCommand {
+
 	case commandmodel.PERSIST:
 		delete(*expiryMetaData, key)
 		return commandresult.CommandResult{Response: fmt.Sprintf("Successfully removed expiry for key %s", key)}
+
 	case commandmodel.EXPIRE:
 		if len(commands) < 3 {
 			return commandresult.CommandResult{Err: fmt.Errorf("invalid number of arguments")}
 		}
+
 		value := commands[2]
 		expiryDateTime, err := converter.ConvertStringToEpochMilis(value)
+
 		if err != nil {
 			return commandresult.CommandResult{Err: fmt.Errorf("HandleExpiryCommands: %w", err)}
 		} else {
@@ -49,8 +53,9 @@ func HandleExpiryCommands(commands []string) commandresult.CommandResult {
 func CheckAndDeleteExpired(datastructureKey string) (bool, error) {
 	expiryMetaData, err := service.CastToType[map[string]int](repository.MemMetadataStore, commandmodel.EXPIRE, true)
 	if err != nil {
-		return false, fmt.Errorf("CheckAndDeleteExpired: %w", err)
+		return false, fmt.Errorf("unable to cast meta data store: %w", err)
 	}
+
 	expiryTime, ok := (*expiryMetaData)[datastructureKey]
 	if ok && expiryTime <= int(time.Now().UnixMilli()) {
 		if _, ok := repository.MemKeyValueStore[datastructureKey]; ok {
@@ -58,5 +63,6 @@ func CheckAndDeleteExpired(datastructureKey string) (bool, error) {
 		}
 		return true, fmt.Errorf("the key %s has expired", datastructureKey)
 	}
+
 	return false, nil
 }

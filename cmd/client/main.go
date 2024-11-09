@@ -40,7 +40,7 @@ func main() {
 			}
 
 			log.InfoLog.Printf("Sending message %s", message)
-			cr := tcp.SendMessage(commandresult.CommandResult{Response: message, Conn: *conn}).Bind(commandresult.LogResult)
+			cr := tcp.SendMessage(commandresult.CommandResult{Response: message, Conn: *conn})
 
 			if cr.Err != nil {
 				fmt.Printf("Write data failed: %s\n", err.Error())

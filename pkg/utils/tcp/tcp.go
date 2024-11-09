@@ -4,11 +4,21 @@ import (
 	"encoding/binary"
 	"fmt"
 	"go-redis/internal/model/commandresult"
+	"go-redis/pkg/utils/log"
 	"net"
 )
 
 func SendMessage(result commandresult.CommandResult) commandresult.CommandResult {
-	return result.Bind(updateErrorResponse).BindIfNoErr(writePrefixAndCheckErr).BindIfNoErr(writeMessageAndCheckErr)
+	return result.Bind(logResult).Bind(updateErrorResponse).BindIfNoErr(writePrefixAndCheckErr).BindIfNoErr(writeMessageAndCheckErr).LogError()
+}
+
+func logResult(r commandresult.CommandResult) commandresult.CommandResult {
+	if r.Err != nil {
+		log.ErrorLog.Printf("Error running command: %s", r.Err.Error())
+	} else {
+		log.InfoLog.Printf("Wrote the payload is %s\n", r.Response)
+	}
+	return r
 }
 
 func updateErrorResponse(result commandresult.CommandResult) commandresult.CommandResult {

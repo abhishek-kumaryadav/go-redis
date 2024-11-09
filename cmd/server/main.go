@@ -20,12 +20,13 @@ func main() {
 	configPath := flag.String("config", "./go-redis.conf", "Config file path for this node")
 	flag.Parse()
 
-	config.InitConfParser(*configPath)
-	log.Init(config.GetConfigValueString("log-dir"))
-	repository.InitMemoryRepository()
-	initAppState()
+	initApp(configPath)
 
+	// Gracefully shutdown initialization
 	ctx, cancel := context.WithCancel(context.Background())
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -35,14 +36,16 @@ func main() {
 		go scheduler.StartExpiryScheduler(ctx, &wg)
 	}
 
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
-
 	<-signalCh
 	cancel()
-
 	wg.Wait()
+}
 
+func initApp(configPath *string) {
+	config.InitConfParser(*configPath)
+	log.Init(config.GetConfigValueString("log-dir"))
+	repository.InitMemoryRepository()
+	initAppState()
 }
 
 func initAppState() {

@@ -17,21 +17,21 @@ func HandleDataCommands(commands []string, ds string, c net.TCPConn) commandresu
 	case model.HASHMAP_DATA:
 		result = datahandler.HandleHashmapCommands(commands)
 		result.Conn = c
-		result.Bind(tcp.SendMessage).LogResult()
+		tcp.SendMessage(result)
 	case commandmodel.EXPIRE:
 		if config.GetConfigValueBool(model.READ_ONLY) {
 			result = commandresult.CommandResult{Err: fmt.Errorf("expiry not supported for read-only nodes"), Conn: c}
 			result.Conn = c
-			result.Bind(tcp.SendMessage).LogResult()
+			tcp.SendMessage(result)
 		} else {
 			result = datahandler.HandleExpiryCommands(commands)
 			result.Conn = c
-			result.Bind(tcp.SendMessage).LogResult()
+			tcp.SendMessage(result)
 		}
 	case model.REPLICA_META:
 		result = datahandler.HandleReplicaMetaDataHandler(commands)
 		result.Conn = c
-		result.Bind(tcp.SendMessage).LogResult()
+		tcp.SendMessage(result)
 	}
 	return result
 }
