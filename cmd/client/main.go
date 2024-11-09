@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"fmt"
+	"go-redis/internal/model/commandresult"
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
 	"net"
 	"os"
-	"strings"
 )
 
 const (
@@ -19,12 +21,6 @@ func main() {
 	flag.Parse()
 	log.Init("clientdir/logs/client.log")
 
-	arguments := flag.Args()
-	if len(arguments) == 1 {
-		log.ErrorLog.Fatal("Invalid number of arguments")
-		return
-	}
-	message := strings.Join(arguments, " ")
 	tcpServer, err := net.ResolveTCPAddr(TYPE, *host+":"+*port)
 	if err != nil {
 		log.ErrorLog.Printf("ResolveTCPAddr failed: %s\n", err.Error())
@@ -38,15 +34,43 @@ func main() {
 	}
 
 	defer conn.Close()
-
-	_, err = conn.Write([]byte(message))
-	conn.CloseWrite()
+	err = conn.SetKeepAlive(true)
 	if err != nil {
-		log.ErrorLog.Printf("Write data failed: %s\n", err.Error())
+		log.ErrorLog.Printf("Error setting keep-alive: %s", err.Error())
 		os.Exit(1)
 	}
 
-	packet := tcp.ReadFromTcpConn(conn)
+	//signalCh := make(chan os.Signal, 1)
+	//signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM, syscall.)
 
-	log.InfoLog.Printf("%s\n", string(packet))
+	for {
+		message := readFromCmdLine()
+		if message == "" {
+			fmt.Printf("Read failed\n")
+			os.Exit(1)
+		}
+		log.InfoLog.Printf("Sending message %s", message)
+		tcp.SendMessage(commandresult.CommandResult{Response: message, Conn: *conn}).LogResult()
+
+		if err != nil {
+			fmt.Printf("Write data failed: %s\n", err.Error())
+			os.Exit(1)
+		}
+
+		packet, _ := tcp.ReadFromConn(*conn)
+		fmt.Printf("%s\n", packet)
+	}
+
+	//<-signalCh
+	//conn.Close()
+	//os.Exit(1)
+}
+
+func readFromCmdLine() string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter your input: ")
+
+	input, _ := reader.ReadString('\n') // Read until newline
+	input = input[:len(input)-1]        // Remove trailing newline
+	return input
 }
