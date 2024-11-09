@@ -63,7 +63,7 @@ func GetLatestLog(inputNumber int) *string {
 	// Iterate through each line
 	for scanner.Scan() {
 		line := scanner.Text()
-		fields := strings.Split(line, ",")
+		fields := strings.Split(line, " ")
 
 		// Check if the first field is the input number
 		if len(fields) > 0 {

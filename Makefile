@@ -13,8 +13,8 @@ build:
 	cp ./build/client ./build/clientdir/
 
 kill:
-	- if [ -f build/master/server.pid ]; then kill $$(cat build/master/server.pid); fi
-	- if [ -f build/replica1/server.pid ]; then kill $$(cat build/replica1/server.pid); fi
+	- if [ -f build/master/server.pid ]; then kill -9 $$(cat build/master/server.pid); fi
+	- if [ -f build/replica1/server.pid ]; then kill -9 $$(cat build/replica1/server.pid); fi
 
 run: build kill
 	./build/master/server --config ./build/master/go-redis.conf & echo $$! > build/master/server.pid

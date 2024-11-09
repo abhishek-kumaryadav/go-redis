@@ -8,7 +8,7 @@ import (
 type CommandResult struct {
 	Response string
 	Err      error
-	Conn     net.TCPConn
+	Conn     *net.TCPConn
 }
 
 func (r CommandResult) BindIfNoErr(f func(result CommandResult) CommandResult) CommandResult {
@@ -24,7 +24,7 @@ func (r CommandResult) Bind(f func(result CommandResult) CommandResult) CommandR
 
 func (r CommandResult) LogError() CommandResult {
 	if r.Err != nil {
-		log.ErrorLog.Printf("Error running command: %s", r.Err.Error())
+		log.ErrorLog.Printf("Error during sending message: %s", r.Err.Error())
 	}
 	return r
 }

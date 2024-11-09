@@ -2,7 +2,6 @@ package datahandler
 
 import (
 	"fmt"
-	"go-redis/internal/config"
 	"go-redis/internal/model/commandmodel"
 	"go-redis/internal/model/commandresult"
 	"go-redis/internal/repository"
@@ -11,7 +10,7 @@ import (
 	"go-redis/pkg/utils/log"
 )
 
-func HandleHashmapCommands(commands []string) commandresult.CommandResult {
+func HandleHashmapCommands(commands []string, readOnlyFlag bool) commandresult.CommandResult {
 	if len(commands) <= 1 {
 		return commandresult.CommandResult{Err: fmt.Errorf("incorrect number of arguments")}
 	}
@@ -20,7 +19,7 @@ func HandleHashmapCommands(commands []string) commandresult.CommandResult {
 	switch subCommand {
 
 	case commandmodel.HSET:
-		err := validateHSET(commands)
+		err := validateHSET(commands, readOnlyFlag)
 		if err != nil {
 			return commandresult.CommandResult{Err: err}
 		}
@@ -74,8 +73,8 @@ func validateHGET(commands []string) error {
 	return nil
 }
 
-func validateHSET(commands []string) error {
-	if config.GetConfigValueBool("read-only") {
+func validateHSET(commands []string, readOnlyFlag bool) error {
+	if readOnlyFlag {
 		return fmt.Errorf("HSET command not supported for read-only node")
 	}
 	if len(commands) != 4 {

@@ -9,6 +9,7 @@ import (
 	"go-redis/internal/service/util"
 	"go-redis/pkg/utils/log"
 	"go-redis/pkg/utils/tcp"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -85,7 +86,10 @@ func handleConnection(ctx context.Context, c net.TCPConn) {
 			// read and extract commands
 			stringPacket, err := tcp.ReadFromConn(c)
 			if err != nil {
-				tcp.SendMessage(commandresult.CommandResult{Err: err})
+				if err == io.EOF {
+					return
+				}
+				tcp.SendMessage(commandresult.CommandResult{Err: err, Conn: &c})
 				continue
 			}
 			commands := strings.Split(stringPacket, " ")
@@ -93,18 +97,19 @@ func handleConnection(ctx context.Context, c net.TCPConn) {
 
 			flow, err := util.GetFlowFromCommand(strings.TrimSpace(commands[0]))
 			if err != nil {
-				tcp.SendMessage(commandresult.CommandResult{Err: err, Conn: c})
+				tcp.SendMessage(commandresult.CommandResult{Err: err, Conn: &c})
 				continue
 			} else {
 				switch flow {
 				case model.ASYNC_FLOW:
 					if config.GetConfigValueBool(model.READ_ONLY) {
-						tcphandler.HandleReplication(commands, c)
+						tcphandler.HandleReplication(ctx, commands, c)
 					} else {
-						tcp.SendMessage(commandresult.CommandResult{Response: "Error: Can only set read only server as replica", Conn: c})
+						tcp.SendMessage(commandresult.CommandResult{Response: "Error: Can only set read only server as replica", Conn: &c})
 					}
 				default:
-					tcphandler.HandleDataCommands(commands, flow, c)
+					readOnlyFlag := config.GetConfigValueBool(model.READ_ONLY)
+					tcphandler.HandleDataCommands(commands, flow, &c, readOnlyFlag)
 				}
 			}
 		}

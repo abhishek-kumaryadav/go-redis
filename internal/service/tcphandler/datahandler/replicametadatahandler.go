@@ -25,9 +25,11 @@ func HandleReplicaMetaDataHandler(commands []string) commandresult.CommandResult
 			replicaOffset, _ := strconv.Atoi(commands[2])
 			var replicationLogLine *string = nil
 			for replicationLogLine == nil {
-				replicationLogLine = log.GetLatestLog(replicaOffset)
 				time.Sleep(time.Second * 5)
+				replicationLogLine = log.GetLatestLog(replicaOffset)
 			}
+			*replicationLogLine = strings.TrimSpace(*replicationLogLine)
+			log.InfoLog.Printf(fmt.Sprintf("syncing replication log: %s", *replicationLogLine))
 			return commandresult.CommandResult{Response: *replicationLogLine}
 		}
 	}

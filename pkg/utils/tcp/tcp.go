@@ -9,10 +9,10 @@ import (
 )
 
 func SendMessage(result commandresult.CommandResult) commandresult.CommandResult {
-	return result.Bind(logResult).Bind(updateErrorResponse).BindIfNoErr(writePrefixAndCheckErr).BindIfNoErr(writeMessageAndCheckErr).LogError()
+	return result.Bind(LogResult).Bind(updateErrorResponse).BindIfNoErr(writePrefixAndCheckErr).BindIfNoErr(writeMessageAndCheckErr).LogError()
 }
 
-func logResult(r commandresult.CommandResult) commandresult.CommandResult {
+func LogResult(r commandresult.CommandResult) commandresult.CommandResult {
 	if r.Err != nil {
 		log.ErrorLog.Printf("Error running command: %s", r.Err.Error())
 	} else {
@@ -29,6 +29,9 @@ func updateErrorResponse(result commandresult.CommandResult) commandresult.Comma
 }
 
 func writePrefixAndCheckErr(result commandresult.CommandResult) commandresult.CommandResult {
+	if result.Conn == nil {
+		return result
+	}
 	messageLength := uint32(len(result.Response))
 	lengthBuf := make([]byte, 4)
 	binary.BigEndian.PutUint32(lengthBuf, messageLength)
@@ -41,6 +44,9 @@ func writePrefixAndCheckErr(result commandresult.CommandResult) commandresult.Co
 }
 
 func writeMessageAndCheckErr(result commandresult.CommandResult) commandresult.CommandResult {
+	if result.Conn == nil {
+		return result
+	}
 	_, err := result.Conn.Write([]byte(result.Response))
 	if err != nil {
 		return commandresult.CommandResult{Err: err}
@@ -62,5 +68,6 @@ func ReadFromConn(conn net.TCPConn) (string, error) {
 		return "", err
 	}
 
+	log.InfoLog.Printf("Read the following from connection: %s", string(messageBuf))
 	return string(messageBuf), nil
 }

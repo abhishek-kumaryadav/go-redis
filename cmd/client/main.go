@@ -40,7 +40,7 @@ func main() {
 			}
 
 			log.InfoLog.Printf("Sending message %s", message)
-			cr := tcp.SendMessage(commandresult.CommandResult{Response: message, Conn: *conn})
+			cr := tcp.SendMessage(commandresult.CommandResult{Response: message, Conn: conn})
 
 			if cr.Err != nil {
 				fmt.Printf("Write data failed: %s\n", err.Error())
@@ -57,6 +57,7 @@ func main() {
 	}()
 
 	<-signalCh
+	log.InfoLog.Printf("Gracefully shutting down client")
 	conn.Close()
 }
 
